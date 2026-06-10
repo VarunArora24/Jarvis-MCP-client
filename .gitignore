@@ -1,0 +1,37 @@
+# Python cache and byte-compiled files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Virtual Environments
+venv/
+.venv/
+env/
+ENV/
+
+# Project configuration and credentials
+.env
+.env.local
+.env.*.local
+
+# Database/Memory/Logs
+jarvis_memory.json
+logs/
+*.log
+
+# Build and distribution files
+build/
+dist/
+*.egg-info/
+egg-info/
+
+# System-specific files
+.DS_Store
+Thumbs.db
+
+# Scratch testing scripts
+scratch_test*.py
+hello.txt
