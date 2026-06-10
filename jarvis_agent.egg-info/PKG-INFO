@@ -1,0 +1,156 @@
+Metadata-Version: 2.4
+Name: jarvis-agent
+Version: 0.1.0
+Summary: Jarvis Personal AI Agent with MCP architecture
+Classifier: Programming Language :: Python :: 3
+Classifier: Operating System :: Microsoft :: Windows
+Requires-Python: >=3.12
+Description-Content-Type: text/markdown
+Requires-Dist: google-genai>=0.1.0
+Requires-Dist: mcp>=1.0.0
+Requires-Dist: pydantic>=2.0.0
+Requires-Dist: rich>=13.0.0
+Requires-Dist: python-dotenv>=1.0.0
+Requires-Dist: duckduckgo-search>=6.0.0
+Requires-Dist: httpx>=0.27.0
+Requires-Dist: beautifulsoup4>=4.12.0
+
+# Jarvis Personal AI Agent
+
+Jarvis is a production-quality personal AI assistant powered by Gemini and designed around the Model Context Protocol (MCP) architecture. Jarvis runs locally, acts on your natural language instructions using tools, remembers context across sessions via persistent memory, and can be connected directly to editors like Cursor or VS Code as a tool server.
+
+## Features
+
+1. **Interactive Chat CLI**: High-fidelity terminal UI featuring colored status outputs, markdown rendering, and real-time execution tracking.
+2. **Unified Tool Registry**: Tools are defined once as normal Python functions and decorated with `@register_tool`. Their schemas are reflected automatically for both Gemini and MCP.
+3. **Rigorous Security Boundaries**:
+   - **Path containment checks** preventing read/write/delete operations outside designated whitelist directories or inside blacklist directories (like Windows system paths).
+   - **Action confirmation prompts** that pause and demand explicit user verification before running potentially destructive tools (e.g. terminal execution, python code run, file deletion, git commit).
+4. **Persistent Memory System**: Automatically tracks short-term message context and stores general learned facts about user setups in a local JSON database.
+5. **Double Transport MCP Server**: Exposes all registered tools via the Model Context Protocol using either standard I/O (`stdio`) or HTTP Server-Sent Events (`sse`).
+
+---
+
+## Folder Structure
+
+```
+MCP-Server/
+├── requirements.txt         # Project dependencies
+├── pyproject.toml           # Package configurations
+├── jarvis/
+│   ├── __init__.py
+│   ├── main.py              # CLI Entrypoint (chat runner & MCP bootstrap)
+│   ├── config.py            # Environment configurations & whitelists/blacklists
+│   ├── registry.py          # Decortator-based tool collector and schema generator
+│   ├── agent/
+│   │   ├── loop.py          # Reasoning agent loop (Gemini function calling)
+│   │   └── memory.py        # Persistent JSON & short-term message database
+│   ├── mcp/
+│   │   └── server.py        # FastMCP implementation wrapping registry tools
+│   ├── tools/
+│   │   ├── file.py          # read_file, write_file, list_dir, etc.
+│   │   ├── system.py        # run_terminal_command, open_application, etc.
+│   │   ├── web.py           # web_search, open_url
+│   │   ├── python.py        # execute_python_code
+│   │   └── git.py           # git_status, git_commit, git_log
+│   └── utils/
+│       ├── logging.py       # Console Rich log handler & logs/jarvis.log file handler
+│       └── security.py      # Path validation & verification routines
+```
+
+---
+
+## Installation & Setup
+
+1. **System Requirement**: Python 3.12+
+2. **Install Dependencies**:
+   ```bash
+   pip install -r requirements.txt
+   ```
+3. **Configure Environment**:
+   Copy the `.env.example` template to `.env`:
+   ```bash
+   copy .env.example .env
+   ```
+   Open the `.env` file and supply your Gemini API key:
+   ```text
+   GEMINI_API_KEY=AIzaSy...
+   JARVIS_WHITELIST_PATHS=c:\Users\varun\Documents\stuff\Coding\Antigravity\MCP-Server
+   ```
+
+---
+
+## Usage Guide
+
+### 1. Start Interactive Chat CLI
+Run the local agent chat console:
+```bash
+python -m jarvis.main
+```
+You can type natural language commands. For example:
+- *"Search web for latest LLM advancements"*
+- *"List the files in my directory and check the git status"*
+- *"Write a python script that prints fibonacci sequence up to 100 and execute it"*
+
+### 2. Start MCP Server Mode (stdio transport)
+Run the server to allow external MCP clients (like Claude Desktop or Cursor) to call Jarvis's tools:
+```bash
+python -m jarvis.main --mcp
+```
+
+### 3. Start MCP Server Mode (SSE transport)
+```bash
+python -m jarvis.main --mcp --sse
+```
+
+### 4. Manage Memory Facts Directly
+Add facts manually to Jarvis's long-term memory:
+```bash
+python -m jarvis.main --add-fact "Workspace is set up at C:\\Projects\\Dev"
+```
+Remove facts:
+```bash
+python -m jarvis.main --remove-fact "Workspace is set up at C:\\Projects\\Dev"
+```
+
+---
+
+## Extending Jarvis with New Tools
+
+Adding a new tool to Jarvis is incredibly easy. 
+
+1. Write a standard Python function in one of the files in `jarvis/tools/` (or create a new file and import it in `jarvis/tools/__init__.py`).
+2. Add type hints to all arguments.
+3. Write a clear docstring explaining the tool's behavior and arguments (this docstring is sent to the LLM as the tool description).
+4. Decorate the function with `@registry.register()`.
+
+```python
+from jarvis.registry import registry
+
+@registry.register(name="calculate_hash", dangerous=False)
+def calculate_hash(file_path: str, algorithm: str = "sha256") -> str:
+    """
+    Calculate the hash of a file.
+
+    Args:
+        file_path: Path of the file to hash.
+        algorithm: Hash algorithm to use (e.g., md5, sha1, sha256).
+    """
+    # 1. Enforce path safety
+    from jarvis.utils.security import validate_path
+    safe_path = validate_path(file_path)
+    
+    # 2. Execution logic
+    import hashlib
+    hasher = hashlib.new(algorithm)
+    with open(safe_path, 'rb') as f:
+        for chunk in iter(lambda: f.read(4096), b""):
+            hasher.update(chunk)
+            
+    return hasher.hexdigest()
+```
+
+The tool is automatically:
+- Reflected as a tool schema for Gemini.
+- Binded into the `JarvisAgent` reasoning loop.
+- Exposed via the MCP server interface!

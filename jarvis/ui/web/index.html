@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jarvis — Premium AI Assistant</title>
+    <meta name="description" content="Jarvis — A modern, premium desktop AI assistant.">
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        heading: ['Outfit', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        bgPrimary: '#0B0F19',
+                        accentStart: '#6E5BFF',
+                        accentEnd: '#00D4FF',
+                        accentSecondary: '#FF4FD8',
+                        textPrimary: '#FFFFFF',
+                        textMuted: '#A7B0C0',
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Custom CSS stylesheet -->
+    <link rel="stylesheet" href="index.css">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="h-full bg-bgPrimary text-textPrimary selection:bg-accentStart/30 font-sans relative overflow-hidden">
+
+    <!-- Morphing Background Blobs -->
+    <div class="bg-blob bg-blob-1"></div>
+    <div class="bg-blob bg-blob-2"></div>
+    <div class="bg-blob bg-blob-3"></div>
+
+    <!-- Toggle layout overlays (Sidebar/RightPanel helper for debug or escape key) -->
+    <button id="toggle-panels-btn" class="fixed top-5 right-6 z-[200] glass-panel px-4 py-2 rounded-full text-xs font-semibold text-textMuted hover:text-white flex items-center gap-2 hover:bg-white/5 transition-all duration-300 shadow-lg" title="Toggle Panels [Esc]">
+        <i data-lucide="layout-sidebar" class="w-4 h-4"></i>
+        <span>Toggle Panels</span>
+    </button>
+
+    <!-- Main Application Shell -->
+    <div class="h-full flex relative z-10 p-4 gap-4 overflow-hidden">
+        
+        <!-- =========================================
+           LEFT SIDEBAR (Memory & System Status) - Collapsed by default on startup
+           ========================================= -->
+        <aside id="left-sidebar" class="w-0 p-0 opacity-0 overflow-hidden flex flex-col gap-4 flex-shrink-0 transition-all duration-500 glass-panel rounded-[24px] shadow-2xl z-50">
+            <!-- Brand Logo with Canvas Reactor -->
+            <div class="flex items-center gap-3 pb-4 border-b border-white/5">
+                <div class="w-9 h-9 rounded-full flex items-center justify-center relative shadow-lg shadow-accentStart/15 overflow-hidden">
+                    <canvas id="sidebar-logo-canvas" class="w-full h-full pointer-events-auto cursor-pointer" title="System status reactor"></canvas>
+                </div>
+                <div class="flex flex-col">
+                    <h2 class="font-heading font-bold tracking-wider text-lg bg-gradient-to-r from-white via-white to-textMuted bg-clip-text text-transparent">JARVIS</h2>
+                    <span class="text-[9px] font-mono text-accentSecondary tracking-widest uppercase">System Active</span>
+                </div>
+                <span class="ml-auto text-[10px] font-mono text-white/40 bg-white/5 px-2 py-0.5 rounded-full border border-white/10">v3.5</span>
+            </div>
+
+            <!-- Diagnostics Monitor -->
+            <div class="flex flex-col gap-3">
+                <div class="flex items-center gap-2 text-xs font-semibold text-textMuted uppercase tracking-wider">
+                    <i data-lucide="cpu" class="w-3.5 h-3.5 text-accentEnd"></i>
+                    <span>Diagnostics</span>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-white/[0.02] border border-white/5 rounded-2xl p-3 flex flex-col gap-1">
+                        <span class="text-[9px] font-mono text-textMuted uppercase">CPU Cores</span>
+                        <span id="diag-cpu" class="text-xs font-semibold font-mono">N/A</span>
+                    </div>
+                    <div class="bg-white/[0.02] border border-white/5 rounded-2xl p-3 flex flex-col gap-1">
+                        <span class="text-[9px] font-mono text-textMuted uppercase">RAM Load</span>
+                        <span id="diag-ram" class="text-xs font-semibold font-mono">N/A</span>
+                    </div>
+                    <div class="bg-white/[0.02] border border-white/5 rounded-2xl p-3 flex flex-col gap-1">
+                        <span class="text-[9px] font-mono text-textMuted uppercase">OS Host</span>
+                        <span id="diag-os" class="text-xs font-semibold font-mono truncate">WINDOWS</span>
+                    </div>
+                    <div class="bg-white/[0.02] border border-white/5 rounded-2xl p-3 flex flex-col gap-1">
+                        <span class="text-[9px] font-mono text-textMuted uppercase">Link State</span>
+                        <span class="text-xs font-semibold font-mono text-emerald-400 flex items-center gap-1.5">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                            ONLINE
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Memory List Panel -->
+            <div class="flex-1 flex flex-col gap-3 min-height-0">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2 text-xs font-semibold text-textMuted uppercase tracking-wider">
+                        <i data-lucide="database" class="w-3.5 h-3.5 text-accentStart"></i>
+                        <span>Persistent Knowledge</span>
+                    </div>
+                    <button id="refresh-memory-btn" class="p-1 rounded-full text-white/30 hover:text-white hover:bg-white/5 transition-all" title="Refresh facts">
+                        <i data-lucide="rotate-cw" class="w-3 h-3"></i>
+                    </button>
+                </div>
+                <div id="memory-facts-list" class="flex-1 overflow-y-auto space-y-2 pr-1 text-xs">
+                    <!-- Loaded dynamically in JS -->
+                    <div class="text-white/40 italic text-center py-6 font-mono text-[11px]">Loading knowledge database...</div>
+                </div>
+            </div>
+
+            <!-- Controls footer -->
+            <div class="flex flex-col gap-2 pt-4 border-t border-white/5">
+                <button id="voice-talk-btn" class="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-accentStart/10 border border-accentStart/20 hover:bg-accentStart/25 text-white text-xs font-semibold transition-all duration-300 shadow-lg shadow-accentStart/5 relative overflow-hidden group">
+                    <div class="absolute inset-0 bg-gradient-to-r from-accentStart to-accentEnd opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
+                    <i data-lucide="mic" class="w-4 h-4 text-accentEnd"></i>
+                    <span id="voice-talk-label">VOICE LOOP: ON</span>
+                </button>
+                <button id="mute-btn" class="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-white/5 text-textMuted hover:text-white text-xs font-semibold transition-all duration-300">
+                    <i id="mute-icon" data-lucide="volume-2" class="w-4 h-4"></i>
+                    <span id="mute-label">VOICE OUTPUT</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- =========================================
+           CENTER PANEL (Main Conversation Feed & Reactor) - Starts in immersive mode
+           ========================================= -->
+        <main class="flex-1 flex flex-col relative rounded-[24px] overflow-hidden glass-panel shadow-2xl immersive-mode">
+            <!-- Central Header -->
+            <header class="h-16 border-b border-white/5 px-6 flex items-center justify-between shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-2.5 h-2.5 rounded-full bg-accentEnd relative">
+                        <div class="absolute inset-0 rounded-full bg-accentEnd animate-ping opacity-60"></div>
+                    </div>
+                    <span id="header-status-text" class="text-xs font-semibold font-mono text-textMuted uppercase tracking-wider">JARVIS: SLEEP</span>
+                </div>
+                <div id="status-badge" class="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[10px] font-semibold tracking-wider font-mono flex items-center gap-1.5 text-textMuted uppercase">
+                    <span class="w-1.5 h-1.5 rounded-full bg-white/40"></span>
+                    <span>ACTIVE</span>
+                </div>
+            </header>
+
+            <!-- Voice Reactor Stage (Primary visual visualizer - occupies full main screen in immersive-mode) -->
+            <div id="voice-stage-container" class="py-5 border-b border-white/5 flex flex-col items-center justify-center shrink-0 bg-white/[0.01] relative z-20 transition-all duration-500">
+                <div class="relative w-80 h-80 flex items-center justify-center">
+                    <canvas id="main-voice-canvas" class="w-full h-full pointer-events-auto cursor-pointer" title="Click to toggle Voice Loop"></canvas>
+                </div>
+                <!-- Immersive status display -->
+                <div id="immersive-status-container" class="mt-6 flex flex-col items-center gap-2 transition-all duration-500">
+                    <span id="immersive-status-label" class="text-xl font-heading font-medium tracking-wide text-white">Sleeping</span>
+                    <span id="immersive-status-sub" class="text-xs font-mono text-textMuted uppercase tracking-widest">TAP ORB TO COMMUNICATE</span>
+                </div>
+            </div>
+
+            <!-- Chat & Stream Container -->
+            <div id="chat-container" class="flex-1 overflow-y-auto p-6 flex flex-col gap-6 relative">
+                
+                <!-- Welcome Screen (Shown when no messages exist) -->
+                <div id="welcome-screen" class="my-auto flex flex-col items-center justify-center text-center gap-6 max-w-xl mx-auto py-12">
+                    <div class="flex flex-col gap-2">
+                        <h1 id="welcome-title" class="font-heading font-extrabold text-3xl tracking-tight bg-gradient-to-r from-white via-white to-textMuted bg-clip-text text-transparent">Hello, User</h1>
+                        <p class="text-sm text-textMuted leading-relaxed">I am Jarvis, your digital workspace companion. I can run calculations, search files, execute terminal code, or help you brainstorm ideas. Tap the reactor orb or prompt me below to begin.</p>
+                    </div>
+                    
+                    <!-- Suggested Quick Prompts -->
+                    <div class="grid grid-cols-2 gap-3 w-full mt-4">
+                        <button class="quick-prompt-btn text-left p-4 rounded-[20px] bg-white/[0.02] border border-white/5 hover:bg-white/5 hover:border-white/15 transition-all text-xs flex flex-col gap-1.5 group">
+                            <span class="font-semibold text-white group-hover:text-accentEnd transition-colors">Show System Diagnostics</span>
+                            <span class="text-textMuted text-[10.5px]">Check CPU load, active processes, and OS stats.</span>
+                        </button>
+                        <button class="quick-prompt-btn text-left p-4 rounded-[20px] bg-white/[0.02] border border-white/5 hover:bg-white/5 hover:border-white/15 transition-all text-xs flex flex-col gap-1.5 group">
+                            <span class="font-semibold text-white group-hover:text-accentEnd transition-colors">Recent Memory Log</span>
+                            <span class="text-textMuted text-[10.5px]">Retrieve stored facts and learned variables.</span>
+                        </button>
+                        <button class="quick-prompt-btn text-left p-4 rounded-[20px] bg-white/[0.02] border border-white/5 hover:bg-white/5 hover:border-white/15 transition-all text-xs flex flex-col gap-1.5 group">
+                            <span class="font-semibold text-white group-hover:text-accentEnd transition-colors">Open Web Browser</span>
+                            <span class="text-textMuted text-[10.5px]">Launch search for news or weather updates.</span>
+                        </button>
+                        <button class="quick-prompt-btn text-left p-4 rounded-[20px] bg-white/[0.02] border border-white/5 hover:bg-white/5 hover:border-white/15 transition-all text-xs flex flex-col gap-1.5 group">
+                            <span class="font-semibold text-white group-hover:text-accentEnd transition-colors">Find Local Scripts</span>
+                            <span class="text-textMuted text-[10.5px]">Search for Python or bash files in workspace.</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Chat message feed -->
+                <div id="chat-messages" class="flex flex-col gap-6 w-full max-w-3xl mx-auto">
+                    <!-- Rendered dynamically -->
+                </div>
+
+                <!-- Floating typing animation (hidden by default) -->
+                <div id="typing-indicator" class="hidden flex items-start gap-4 w-full max-w-3xl mx-auto message-bubble">
+                    <div class="w-8 h-8 rounded-full bg-accentStart/20 flex items-center justify-center shrink-0">
+                        <i data-lucide="bot" class="w-4 h-4 text-accentEnd"></i>
+                    </div>
+                    <div class="flex flex-col gap-1 max-w-[85%]">
+                        <span class="text-[10px] font-mono font-semibold tracking-wider text-accentEnd uppercase">JARVIS</span>
+                        <div class="glass-panel px-4 py-3.5 rounded-[20px] rounded-tl-none flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-accentEnd typing-dot"></span>
+                            <span class="w-2 h-2 rounded-full bg-accentEnd typing-dot"></span>
+                            <span class="w-2 h-2 rounded-full bg-accentEnd typing-dot"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Floating Prompt Bar -->
+            <div class="p-6 shrink-0 relative z-30 bg-gradient-to-t from-bgPrimary/60 via-bgPrimary/30 to-transparent">
+                <div class="max-w-3xl mx-auto relative glass-input rounded-[28px] p-2 flex items-center gap-2 group border-gradient-focus">
+                    <!-- Left actions (Attachment & Voice Toggle) -->
+                    <div class="flex items-center gap-1">
+                        <button id="attachment-btn" class="w-10 h-10 rounded-full text-textMuted hover:text-white hover:bg-white/5 flex items-center justify-center transition-all duration-300" title="Attach file">
+                            <i data-lucide="paperclip" class="w-4.5 h-4.5"></i>
+                        </button>
+                        <button id="prompt-voice-btn" class="w-10 h-10 rounded-full text-textMuted hover:text-white hover:bg-white/5 flex items-center justify-center transition-all duration-300 relative" title="Toggle voice loop">
+                            <div id="prompt-voice-pulse" class="absolute inset-1.5 rounded-full bg-accentSecondary/10 animate-ping hidden"></div>
+                            <i data-lucide="mic" class="w-4.5 h-4.5 relative z-10"></i>
+                        </button>
+                    </div>
+
+                    <!-- Input form -->
+                    <form id="command-form" class="flex-1 flex items-center min-w-0">
+                        <input type="text" id="command-input" placeholder="Type a message or command..." autocomplete="off" class="flex-1 bg-transparent text-sm border-0 focus:outline-none focus:ring-0 text-white placeholder-white/30 px-2 py-2.5 min-w-0">
+                        <!-- Submit send button -->
+                        <button type="submit" id="send-btn" class="w-10 h-10 rounded-full bg-gradient-to-tr from-accentStart to-accentEnd text-white hover:opacity-90 flex items-center justify-center transition-all duration-300 shadow-md shadow-accentStart/20 shrink-0" title="Send message">
+                            <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </main>
+
+        <!-- =========================================
+           RIGHT PANEL (Active Agent Actions & Status) - Collapsed by default on startup
+           ========================================= -->
+        <aside id="right-sidebar" class="w-0 p-0 opacity-0 overflow-hidden flex flex-col gap-4 flex-shrink-0 transition-all duration-500 glass-panel rounded-[24px] shadow-2xl z-50">
+            <!-- Panel Header -->
+            <div class="flex items-center gap-2 pb-4 border-b border-white/5">
+                <i data-lucide="activity" class="w-4 h-4 text-accentSecondary"></i>
+                <h3 class="font-heading font-semibold text-sm tracking-wide text-white uppercase">Agent Activity</h3>
+            </div>
+
+            <!-- Agent Status Card -->
+            <div class="bg-gradient-to-tr from-accentStart/5 via-accentEnd/5 to-transparent border border-white/5 rounded-[20px] p-4 flex flex-col gap-3 relative overflow-hidden shadow-inner shadow-accentStart/5">
+                <div class="absolute -right-6 -bottom-6 w-20 h-20 bg-accentEnd/10 rounded-full blur-xl"></div>
+                <div class="flex items-center justify-between">
+                    <span class="text-[10px] font-mono text-textMuted uppercase tracking-wider">Current State</span>
+                    <span id="agent-state-badge" class="px-2.5 py-0.5 rounded-full text-[9px] font-mono font-bold tracking-widest bg-accentStart/25 text-white border border-accentStart/30 uppercase">SLEEP</span>
+                </div>
+                <div class="flex flex-col gap-1">
+                    <span class="text-sm font-semibold font-heading" id="status-title-text">Waiting for prompt</span>
+                    <p class="text-[11px] text-textMuted leading-relaxed" id="status-desc-text">Jarvis is in sleep mode. Submit a command or say something to begin reasoning.</p>
+                </div>
+            </div>
+
+            <!-- Active / Running Tool Logs -->
+            <div class="flex-1 flex flex-col gap-3 min-height-0">
+                <div class="flex items-center justify-between text-xs font-semibold text-textMuted uppercase tracking-wider">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="terminal" class="w-3.5 h-3.5 text-accentSecondary"></i>
+                        <span>Live Actions & Tool Calls</span>
+                    </div>
+                </div>
+                <!-- Log Container -->
+                <div id="live-tool-container" class="flex-1 overflow-y-auto space-y-3 pr-1">
+                    <div class="text-white/30 italic text-center py-10 font-mono text-[11px] flex flex-col gap-2 items-center">
+                        <i data-lucide="clock" class="w-5 h-5 opacity-40"></i>
+                        <span>No active processes</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Action Shortcuts -->
+            <div class="flex flex-col gap-2.5 pt-4 border-t border-white/5">
+                <span class="text-[10px] font-mono text-textMuted uppercase tracking-wider">Quick Actions</span>
+                <div class="flex flex-col gap-2">
+                    <button class="quick-action-pill flex items-center justify-between p-3 rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-white/5 text-xs text-textMuted hover:text-white transition-all text-left" id="clear-chat-btn">
+                        <span class="font-medium">Clear conversation</span>
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5 text-white/40"></i>
+                    </button>
+                    <button class="quick-action-pill flex items-center justify-between p-3 rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-white/5 text-xs text-textMuted hover:text-white transition-all text-left" id="toggle-debug-btn">
+                        <span class="font-medium">On-screen diagnostics</span>
+                        <i data-lucide="terminal" class="w-3.5 h-3.5 text-white/40"></i>
+                    </button>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- =========================================
+       DANGEROUS TOOL CONFIRMATION MODAL
+       ========================================= -->
+    <div id="confirm-modal" class="fixed inset-0 z-[250] bg-bgPrimary/80 backdrop-blur-md flex items-center justify-center p-4 transition-all duration-300 opacity-0 pointer-events-none">
+        <div class="w-full max-w-lg glass-panel rounded-[28px] p-6 shadow-2xl scale-95 transition-all duration-300 flex flex-col gap-5 border border-amber-500/20">
+            <div class="flex items-center gap-3 text-amber-400">
+                <div class="w-10 h-10 rounded-full bg-amber-400/10 flex items-center justify-center">
+                    <i data-lucide="shield-alert" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="font-heading font-bold text-sm tracking-wide text-white uppercase">Security Authentication</h3>
+                    <span class="text-[10px] font-mono text-amber-400/80">Permission Required</span>
+                </div>
+            </div>
+            
+            <div class="flex flex-col gap-2">
+                <p class="text-xs text-textMuted leading-relaxed">Jarvis is requesting permission to execute a system command that could modify files or run terminal processes:</p>
+                <div id="confirm-description" class="bg-black/30 border border-white/5 rounded-2xl p-4 text-xs font-mono text-white/90 break-all select-text max-h-40 overflow-y-auto">
+                    <!-- Populated dynamically -->
+                </div>
+                <p class="text-[11px] text-amber-500/80 italic font-medium flex items-center gap-1.5 mt-1">
+                    <i data-lucide="info" class="w-3.5 h-3.5"></i>
+                    Allowing this gives the agent direct access to execute shell utilities.
+                </p>
+            </div>
+            
+            <div class="flex items-center gap-3 pt-2">
+                <button id="deny-btn" class="flex-1 py-3 rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-white/5 hover:text-white text-xs font-semibold text-textMuted transition-all">
+                    Deny Action
+                </button>
+                <button id="allow-btn" class="flex-1 py-3 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black text-xs font-bold transition-all shadow-lg shadow-amber-500/10">
+                    Authorize Execution
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Core Scripts -->
+    <script src="index.js"></script>
+</body>
+</html>
